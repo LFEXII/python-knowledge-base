@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import knowledgeData from './data/python_knowledge.json'
 
 type Page = 'home' | 'mindmap' | 'quiz' | 'feedback' | 'detail'
@@ -276,7 +276,7 @@ function QuizPage() {
     knowledgeData.forEach((k: any) => {
       if (Array.isArray(k.qa_pairs)) {
         k.qa_pairs.forEach((p: any) => {
-          if (p?.question && p?.answer) {
+          if (p && typeof p.question === 'string' && typeof p.answer === 'string') {
             qa.push({ q: p.question, a: p.answer })
           }
         })
@@ -293,33 +293,35 @@ function QuizPage() {
   const [finished, setFinished] = useState(false)
   const [showA, setShowA] = useState(false)
 
-  const [quizSet] = useState(() => {
+  const quizSet = useMemo(() => {
     if (allQA.length === 0) return []
-    return [...allQA].sort(() => Math.random() - 0.5).slice(0, Math.min(10, allQA.length))
-  })
+    const shuffled = [...allQA].sort(() => Math.random() - 0.5)
+    return shuffled.slice(0, Math.min(10, shuffled.length))
+  }, [allQA])
 
-  const current = quizSet[idx]
-  
+  const current = quizSet[idx] || null
+
   const options = useMemo(() => {
     if (!current) return []
-    const wrongs = allQA
-      .filter(q => q.a !== current.a)
+    const correct = current.a
+    const wrongOpts = allQA
+      .filter(q => q.a !== correct)
       .sort(() => Math.random() - 0.5)
       .slice(0, 3)
       .map(q => q.a)
-    const opts = [current.a, ...wrongs]
+    const opts = [correct, ...wrongOpts]
     return [...new Set(opts)].sort(() => Math.random() - 0.5)
   }, [current, allQA])
 
-  const check = () => {
+  const check = useCallback(() => {
     if (!selected || !current) return
     const ok = selected === current.a
     if (ok) setScore(s => s + 1)
     else setWrong(w => [...w, { q: current.q, c: current.a, u: selected }])
     setShowA(true)
-  }
+  }, [selected, current])
 
-  const next = () => {
+  const next = useCallback(() => {
     if (idx + 1 >= quizSet.length) {
       setFinished(true)
     } else {
@@ -327,9 +329,9 @@ function QuizPage() {
       setSelected('')
       setShowA(false)
     }
-  }
+  }, [idx, quizSet.length])
 
-  const restart = () => {
+  const restart = useCallback(() => {
     setIdx(0)
     setSelected('')
     setScore(0)
@@ -337,15 +339,23 @@ function QuizPage() {
     setFinished(false)
     setShowA(false)
     setStarted(true)
+  }, [])
+
+  if (allQA.length === 0) {
+    return (
+      <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center', padding: '40px 16px' }}>
+        <p style={{ color: '#f87171', fontSize: 16 }}>题库数据加载失败，请检查 python_knowledge.json 文件。</p>
+      </div>
+    )
   }
 
   if (!started) {
     return (
       <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center', padding: '40px 16px' }}>
         <h1 style={{ fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 8 }}>知识问答测试</h1>
-        <p style={{ color: '#94a3b8', marginBottom: 24 }}>随机抽取 {Math.min(10, allQA.length)} 道题目，检验你的 Python 基础</p>
+        <p style={{ color: '#94a3b8', marginBottom: 24 }}>随机抽取 {quizSet.length} 道题目，检验你的 Python 基础</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
-          {[{ n: String(Math.min(10, allQA.length)), l: '题目' }, { n: '4', l: '选项' }, { n: String(allQA.length), l: '题库' }].map((s, i) => (
+          {[{ n: String(quizSet.length), l: '题目' }, { n: '4', l: '选项' }, { n: String(allQA.length), l: '题库' }].map((s, i) => (
             <div key={i} style={{ background: 'rgba(30,41,59,0.5)', borderRadius: 12, border: '1px solid #334155', padding: 16 }}>
               <div style={{ fontSize: 28, fontWeight: 'bold', color: '#fbbf24' }}>{s.n}</div>
               <div style={{ fontSize: 13, color: '#94a3b8' }}>{s.l}</div>
@@ -414,7 +424,8 @@ function QuizPage() {
         <h2 style={{ fontSize: 18, color: '#fff', marginBottom: 16, lineHeight: 1.5 }}>{current.q}</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {options.map((opt, i) => {
-            let border = '1px solid #475569', bg = 'rgba(30,41,59,0.5)'
+            let border = '1px solid #475569'
+            let bg = 'rgba(30,41,59,0.5)'
             if (showA) {
               if (opt === current.a) {
                 border = '1px solid #34d399'
@@ -428,8 +439,8 @@ function QuizPage() {
               bg = 'rgba(251,191,36,0.1)'
             }
             return (
-              <label key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, borderRadius: 8, border, background: bg, cursor: showA ? 'default' : 'pointer' }}>
-                <input type="radio" name="quiz" value={opt} checked={selected === opt} onChange={() => !showA && setSelected(opt)} disabled={showA} style={{ accentColor: '#fbbf24' }} />
+              <label key={`${idx}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, borderRadius: 8, border, background: bg, cursor: showA ? 'default' : 'pointer' }}>
+                <input type="radio" name={`quiz-opt-${idx}`} value={opt} checked={selected === opt} onChange={() => !showA && setSelected(opt)} disabled={showA} style={{ accentColor: '#fbbf24' }} />
                 <span style={{ flex: 1, color: '#e2e8f0', fontSize: 14 }}>{opt}</span>
                 {showA && opt === current.a && <span style={{ color: '#34d399' }}>&#10003;</span>}
                 {showA && opt === selected && opt !== current.a && <span style={{ color: '#f87171' }}>&#10007;</span>}
@@ -539,7 +550,7 @@ export default function App() {
       <main style={{ paddingTop: 80, paddingBottom: 40, paddingLeft: 16, paddingRight: 16, maxWidth: 1280, margin: '0 auto' }}>
         {page === 'home' && <HomePage onSelect={sel} />}
         {page === 'mindmap' && <MindMapPage />}
-        {page === 'quiz' && <QuizPage />}
+        {page === 'quiz' && <QuizPage key={Date.now()} />}
         {page === 'feedback' && <FeedbackPage />}
         {page === 'detail' && item && <DetailPage item={item} onBack={back} />}
       </main>

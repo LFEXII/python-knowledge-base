@@ -188,7 +188,7 @@ function MindMapPage() {
 
       {mode === 'img' ? (
         <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid #334155' }}>
-          <img src="/mindmap.png" alt="Python知识思维导图" style={{ width: '100%', display: 'block' }} />
+          <img src="/python-knowledge-base/mindmap.png" alt="Python知识思维导图" style={{ width: '100%', display: 'block' }} />
         </div>
       ) : (
         <KnowledgeGraph />

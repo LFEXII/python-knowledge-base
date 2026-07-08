@@ -13,6 +13,38 @@ const categoryColors: Record<string, string> = {
 
 const categories = [...new Set(knowledgeData.map((k: any) => k.category))]
 
+/* ─── 图片路径映射 ─── */
+const getImagePath = (id: number): string => {
+  const map: Record<number, string> = {
+    1: '/python-knowledge-base/img_01_variables.png',
+    2: '/python-knowledge-base/img_02_operators.png',
+    3: '/python-knowledge-base/img_03_strings.png',
+    4: '/python-knowledge-base/img_04_lists.png',
+    5: '/python-knowledge-base/img_05_tuples.png',
+    6: '/python-knowledge-base/img_06_dict.png',
+    7: '/python-knowledge-base/img_07_set.png',
+    8: '/python-knowledge-base/img_08_conditionals.png',
+    9: '/python-knowledge-base/img_09_forloops.png',
+    10: '/python-knowledge-base/img_10_whileloops.png',
+    11: '/python-knowledge-base/img_11_breakcontinue.png',
+    12: '/python-knowledge-base/img_12_functions.png',
+    13: '/python-knowledge-base/img_13_parameters.png',
+    14: '/python-knowledge-base/img_14_lambda.png',
+    15: '/python-knowledge-base/img_15_comprehension.png',
+    16: '/python-knowledge-base/img_16_import.png',
+    17: '/python-knowledge-base/img_17_fileio.png',
+    18: '/python-knowledge-base/img_18_exceptions.png',
+    19: '/python-knowledge-base/img_19_classes.png',
+    20: '/python-knowledge-base/img_20_inheritance.png',
+    21: '/python-knowledge-base/img_21_recursion.png',
+    22: '/python-knowledge-base/img_22_decorator.png',
+    23: '/python-knowledge-base/img_23_iterators.png',
+    24: '/python-knowledge-base/img_24_regex.png',
+    25: '/python-knowledge-base/img_25_builtins.png',
+  }
+  return map[id] || ''
+}
+
 /* ─── Header ─── */
 function Header({ page, onNavigate }: { page: Page; onNavigate: (p: Page) => void }) {
   const navs: { p: Page; label: string }[] = [
@@ -88,29 +120,40 @@ function HomePage({ onSelect }: { onSelect: (item: any) => void }) {
 
       {/* Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
-        {filtered.map((item: any) => (
-          <div key={item.id} onClick={() => onSelect(item)} style={{
-            borderRadius: 12, background: 'rgba(30,41,59,0.5)', border: '1px solid #334155',
-            padding: 20, cursor: 'pointer', transition: 'border-color 0.2s, transform 0.2s'
-          }} onMouseEnter={e => { e.currentTarget.style.borderColor = '#64748b'; e.currentTarget.style.transform = 'translateY(-2px)' }}
-             onMouseLeave={e => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.transform = 'translateY(0)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 6, border: `1px solid ${categoryColors[item.category] || '#475569'}33`, color: categoryColors[item.category] || '#94a3b8', background: `${categoryColors[item.category] || '#475569'}15` }}>{item.category}</span>
-              <span style={{ fontSize: 12, color: '#64748b', fontFamily: 'monospace' }}>#{String(item.id).padStart(2, '0')}</span>
+        {filtered.map((item: any) => {
+          const imgPath = getImagePath(item.id)
+          return (
+            <div key={item.id} onClick={() => onSelect(item)} style={{
+              borderRadius: 12, background: 'rgba(30,41,59,0.5)', border: '1px solid #334155',
+              padding: 20, cursor: 'pointer', transition: 'border-color 0.2s, transform 0.2s', overflow: 'hidden'
+            }} onMouseEnter={e => { e.currentTarget.style.borderColor = '#64748b'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+               onMouseLeave={e => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.transform = 'translateY(0)' }}>
+              
+              {/* 知识点配图 */}
+              {imgPath && (
+                <div style={{ margin: '-20px -20px 12px -20px', height: 160, overflow: 'hidden', background: '#0f172a' }}>
+                  <img src={imgPath} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 6, border: `1px solid ${categoryColors[item.category] || '#475569'}33`, color: categoryColors[item.category] || '#94a3b8', background: `${categoryColors[item.category] || '#475569'}15` }}>{item.category}</span>
+                <span style={{ fontSize: 12, color: '#64748b', fontFamily: 'monospace' }}>#{String(item.id).padStart(2, '0')}</span>
+              </div>
+              <h3 style={{ fontSize: 17, fontWeight: 'bold', color: '#fff', marginBottom: 8 }}>{item.title}</h3>
+              <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.definition}</p>
+              <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {item.key_points.slice(0, 3).map((kp: string, i: number) => (
+                  <span key={i} style={{ fontSize: 12, background: 'rgba(51,65,85,0.5)', color: '#cbd5e1', padding: '2px 8px', borderRadius: 4 }}>{kp}</span>
+                ))}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(51,65,85,0.3)' }}>
+                <span style={{ fontSize: 12, color: '#64748b' }}>{item.qa_pairs.length} 个问答</span>
+                <span style={{ fontSize: 12, color: '#64748b' }}>&rarr;</span>
+              </div>
             </div>
-            <h3 style={{ fontSize: 17, fontWeight: 'bold', color: '#fff', marginBottom: 8 }}>{item.title}</h3>
-            <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.definition}</p>
-            <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {item.key_points.slice(0, 3).map((kp: string, i: number) => (
-                <span key={i} style={{ fontSize: 12, background: 'rgba(51,65,85,0.5)', color: '#cbd5e1', padding: '2px 8px', borderRadius: 4 }}>{kp}</span>
-              ))}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(51,65,85,0.3)' }}>
-              <span style={{ fontSize: 12, color: '#64748b' }}>{item.qa_pairs.length} 个问答</span>
-              <span style={{ fontSize: 12, color: '#64748b' }}>&rarr;</span>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {filtered.length === 0 && <p style={{ textAlign: 'center', color: '#64748b', padding: 40 }}>没有找到匹配的知识点</p>}
@@ -120,6 +163,7 @@ function HomePage({ onSelect }: { onSelect: (item: any) => void }) {
 
 /* ─── Detail ─── */
 function DetailPage({ item, onBack }: { item: any; onBack: () => void }) {
+  const imgPath = getImagePath(item.id)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <button onClick={onBack} style={{
@@ -134,6 +178,13 @@ function DetailPage({ item, onBack }: { item: any; onBack: () => void }) {
         </div>
 
         <h1 style={{ fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 20 }}>{item.title}</h1>
+
+        {/* 详情页大图 */}
+        {imgPath && (
+          <div style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 20, border: '1px solid #334155', maxHeight: 320, background: '#0f172a' }}>
+            <img src={imgPath} alt={item.title} style={{ width: '100%', maxHeight: 320, objectFit: 'contain', display: 'block' }} />
+          </div>
+        )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div>

@@ -89,7 +89,6 @@ function HomePage({ onSelect }: { onSelect: (item: any) => void }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {/* Hero */}
       <div style={{ borderRadius: 16, background: 'linear-gradient(135deg, #1e293b, #0f172a)', border: '1px solid #334155', padding: '32px 24px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: 0, right: 0, width: 256, height: 256, background: 'rgba(251,191,36,0.08)', borderRadius: '50%', filter: 'blur(40px)' }} />
         <h1 style={{ fontSize: 32, fontWeight: 'bold', color: '#fff', marginBottom: 8, position: 'relative' }}>Python 编程基础知识库</h1>
@@ -99,7 +98,6 @@ function HomePage({ onSelect }: { onSelect: (item: any) => void }) {
         </div>
       </div>
 
-      {/* Search & Filter */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <input value={query} onChange={e => setQuery(e.target.value)} placeholder="搜索知识点、定义、问答..."
           style={{ width: '100%', maxWidth: 500, padding: '10px 16px', borderRadius: 8, border: '1px solid #475569', background: 'rgba(30,41,59,0.5)', color: '#fff', fontSize: 14 }} />
@@ -118,7 +116,6 @@ function HomePage({ onSelect }: { onSelect: (item: any) => void }) {
         </div>
       </div>
 
-      {/* Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
         {filtered.map((item: any) => {
           const imgPath = getImagePath(item.id)
@@ -128,14 +125,11 @@ function HomePage({ onSelect }: { onSelect: (item: any) => void }) {
               padding: 20, cursor: 'pointer', transition: 'border-color 0.2s, transform 0.2s', overflow: 'hidden'
             }} onMouseEnter={e => { e.currentTarget.style.borderColor = '#64748b'; e.currentTarget.style.transform = 'translateY(-2px)' }}
                onMouseLeave={e => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.transform = 'translateY(0)' }}>
-              
-              {/* 知识点配图 */}
               {imgPath && (
                 <div style={{ margin: '-20px -20px 12px -20px', height: 160, overflow: 'hidden', background: '#0f172a' }}>
                   <img src={imgPath} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 </div>
               )}
-
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 6, border: `1px solid ${categoryColors[item.category] || '#475569'}33`, color: categoryColors[item.category] || '#94a3b8', background: `${categoryColors[item.category] || '#475569'}15` }}>{item.category}</span>
                 <span style={{ fontSize: 12, color: '#64748b', fontFamily: 'monospace' }}>#{String(item.id).padStart(2, '0')}</span>
@@ -179,7 +173,6 @@ function DetailPage({ item, onBack }: { item: any; onBack: () => void }) {
 
         <h1 style={{ fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 20 }}>{item.title}</h1>
 
-        {/* 详情页大图 */}
         {imgPath && (
           <div style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 20, border: '1px solid #334155', maxHeight: 320, background: '#0f172a' }}>
             <img src={imgPath} alt={item.title} style={{ width: '100%', maxHeight: 320, objectFit: 'contain', display: 'block' }} />
@@ -280,7 +273,15 @@ function KnowledgeGraph() {
 function QuizPage() {
   const allQA = useMemo(() => {
     const qa: { q: string; a: string }[] = []
-    knowledgeData.forEach((k: any) => k.qa_pairs.forEach((p: any) => qa.push({ q: p.question, a: p.answer })))
+    knowledgeData.forEach((k: any) => {
+      if (Array.isArray(k.qa_pairs)) {
+        k.qa_pairs.forEach((p: any) => {
+          if (p?.question && p?.answer) {
+            qa.push({ q: p.question, a: p.answer })
+          }
+        })
+      }
+    })
     return qa
   }, [])
 
@@ -292,12 +293,22 @@ function QuizPage() {
   const [finished, setFinished] = useState(false)
   const [showA, setShowA] = useState(false)
 
-  const [quizSet] = useState(() => [...allQA].sort(() => Math.random() - 0.5).slice(0, 10))
+  const [quizSet] = useState(() => {
+    if (allQA.length === 0) return []
+    return [...allQA].sort(() => Math.random() - 0.5).slice(0, Math.min(10, allQA.length))
+  })
+
   const current = quizSet[idx]
+  
   const options = useMemo(() => {
     if (!current) return []
-    const wrongs = allQA.filter(q => q.a !== current.a).sort(() => Math.random() - 0.5).slice(0, 3).map(q => q.a)
-    return [current.a, ...wrongs].sort(() => Math.random() - 0.5)
+    const wrongs = allQA
+      .filter(q => q.a !== current.a)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3)
+      .map(q => q.a)
+    const opts = [current.a, ...wrongs]
+    return [...new Set(opts)].sort(() => Math.random() - 0.5)
   }, [current, allQA])
 
   const check = () => {
@@ -309,30 +320,45 @@ function QuizPage() {
   }
 
   const next = () => {
-    if (idx + 1 >= quizSet.length) setFinished(true)
-    else { setIdx(i => i + 1); setSelected(''); setShowA(false) }
+    if (idx + 1 >= quizSet.length) {
+      setFinished(true)
+    } else {
+      setIdx(i => i + 1)
+      setSelected('')
+      setShowA(false)
+    }
   }
 
-  const restart = () => { setIdx(0); setSelected(''); setScore(0); setWrong([]); setFinished(false); setShowA(false); setStarted(true) }
+  const restart = () => {
+    setIdx(0)
+    setSelected('')
+    setScore(0)
+    setWrong([])
+    setFinished(false)
+    setShowA(false)
+    setStarted(true)
+  }
 
-  if (!started) return (
-    <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center', padding: '40px 16px' }}>
-      <h1 style={{ fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 8 }}>知识问答测试</h1>
-      <p style={{ color: '#94a3b8', marginBottom: 24 }}>随机抽取 10 道题目，检验你的 Python 基础</p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
-        {[{ n: '10', l: '题目' }, { n: '4', l: '选项' }, { n: String(allQA.length), l: '题库' }].map((s, i) => (
-          <div key={i} style={{ background: 'rgba(30,41,59,0.5)', borderRadius: 12, border: '1px solid #334155', padding: 16 }}>
-            <div style={{ fontSize: 28, fontWeight: 'bold', color: '#fbbf24' }}>{s.n}</div>
-            <div style={{ fontSize: 13, color: '#94a3b8' }}>{s.l}</div>
-          </div>
-        ))}
+  if (!started) {
+    return (
+      <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center', padding: '40px 16px' }}>
+        <h1 style={{ fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 8 }}>知识问答测试</h1>
+        <p style={{ color: '#94a3b8', marginBottom: 24 }}>随机抽取 {Math.min(10, allQA.length)} 道题目，检验你的 Python 基础</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+          {[{ n: String(Math.min(10, allQA.length)), l: '题目' }, { n: '4', l: '选项' }, { n: String(allQA.length), l: '题库' }].map((s, i) => (
+            <div key={i} style={{ background: 'rgba(30,41,59,0.5)', borderRadius: 12, border: '1px solid #334155', padding: 16 }}>
+              <div style={{ fontSize: 28, fontWeight: 'bold', color: '#fbbf24' }}>{s.n}</div>
+              <div style={{ fontSize: 13, color: '#94a3b8' }}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+        <button onClick={() => setStarted(true)} style={{ padding: '12px 32px', borderRadius: 8, background: '#fbbf24', color: '#0f172a', border: 'none', fontSize: 16, fontWeight: 'bold', cursor: 'pointer' }}>开始测试</button>
       </div>
-      <button onClick={() => setStarted(true)} style={{ padding: '12px 32px', borderRadius: 8, background: '#fbbf24', color: '#0f172a', border: 'none', fontSize: 16, fontWeight: 'bold', cursor: 'pointer' }}>开始测试</button>
-    </div>
-  )
+    )
+  }
 
-  if (finished) {
-    const acc = Math.round((score / quizSet.length) * 100)
+  if (finished || quizSet.length === 0) {
+    const acc = quizSet.length > 0 ? Math.round((score / quizSet.length) * 100) : 0
     return (
       <div style={{ maxWidth: 600, margin: '0 auto' }}>
         <h1 style={{ fontSize: 24, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 16 }}>测试结果</h1>
@@ -366,26 +392,47 @@ function QuizPage() {
     )
   }
 
+  if (!current) {
+    return (
+      <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center', padding: '40px 16px' }}>
+        <p style={{ color: '#94a3b8', marginBottom: 16 }}>题目加载失败，请重新开始测试。</p>
+        <button onClick={restart} style={{ padding: '10px 24px', borderRadius: 8, background: '#fbbf24', color: '#0f172a', border: 'none', fontSize: 14, fontWeight: 'bold', cursor: 'pointer' }}>重新测试</button>
+      </div>
+    )
+  }
+
   return (
     <div style={{ maxWidth: 600, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <span style={{ fontSize: 14, color: '#94a3b8', whiteSpace: 'nowrap' }}>{idx + 1} / {quizSet.length}</span>
-        <div style={{ flex: 1, height: 6, background: '#1e293b', borderRadius: 3 }}><div style={{ width: `${((idx + 1) / quizSet.length) * 100}%`, height: '100%', background: '#38bdf8', borderRadius: 3 }} /></div>
+        <div style={{ flex: 1, height: 6, background: '#1e293b', borderRadius: 3 }}>
+          <div style={{ width: `${((idx + 1) / quizSet.length) * 100}%`, height: '100%', background: '#38bdf8', borderRadius: 3 }} />
+        </div>
       </div>
 
       <div style={{ background: 'rgba(30,41,59,0.5)', borderRadius: 16, border: '1px solid #334155', padding: 20 }}>
-        <h2 style={{ fontSize: 18, color: '#fff', marginBottom: 16, lineHeight: 1.5 }}>{current?.q}</h2>
+        <h2 style={{ fontSize: 18, color: '#fff', marginBottom: 16, lineHeight: 1.5 }}>{current.q}</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {options.map((opt, i) => {
             let border = '1px solid #475569', bg = 'rgba(30,41,59,0.5)'
-            if (showA) { if (opt === current?.a) { border = '1px solid #34d399'; bg = 'rgba(52,211,153,0.1)' } else if (opt === selected) { border = '1px solid #f87171'; bg = 'rgba(248,113,113,0.1)' } }
-            else if (opt === selected) { border = '1px solid #fbbf24'; bg = 'rgba(251,191,36,0.1)' }
+            if (showA) {
+              if (opt === current.a) {
+                border = '1px solid #34d399'
+                bg = 'rgba(52,211,153,0.1)'
+              } else if (opt === selected) {
+                border = '1px solid #f87171'
+                bg = 'rgba(248,113,113,0.1)'
+              }
+            } else if (opt === selected) {
+              border = '1px solid #fbbf24'
+              bg = 'rgba(251,191,36,0.1)'
+            }
             return (
               <label key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, borderRadius: 8, border, background: bg, cursor: showA ? 'default' : 'pointer' }}>
                 <input type="radio" name="quiz" value={opt} checked={selected === opt} onChange={() => !showA && setSelected(opt)} disabled={showA} style={{ accentColor: '#fbbf24' }} />
                 <span style={{ flex: 1, color: '#e2e8f0', fontSize: 14 }}>{opt}</span>
-                {showA && opt === current?.a && <span style={{ color: '#34d399' }}>&#10003;</span>}
-                {showA && opt === selected && opt !== current?.a && <span style={{ color: '#f87171' }}>&#10007;</span>}
+                {showA && opt === current.a && <span style={{ color: '#34d399' }}>&#10003;</span>}
+                {showA && opt === selected && opt !== current.a && <span style={{ color: '#f87171' }}>&#10007;</span>}
               </label>
             )
           })}
